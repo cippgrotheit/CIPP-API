@@ -15,6 +15,7 @@ function Set-CIPPDefaultAPDeploymentProfile {
         $hideTerms,
         $Autokeyboard,
         $ExecutingUser,
+        $Language = 'os-default',
         $APIName = 'Add Default Enrollment Status Page'
     )
     try {
@@ -23,7 +24,7 @@ function Set-CIPPDefaultAPDeploymentProfile {
             'displayName'                            = "$($displayname)"
             'description'                            = "$($description)"
             'deviceNameTemplate'                     = "$($DeviceNameTemplate)"
-            'language'                               = 'os-default'
+            'language'                               = "$($Language)"
             'enableWhiteGlove'                       = $([bool]($allowWhiteGlove))
             'deviceType'                             = 'windowsPc'
             'extractHardwareHash'                    = $([bool]($CollectHash))
@@ -58,6 +59,8 @@ function Set-CIPPDefaultAPDeploymentProfile {
                 Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APIName -tenant $($tenantfilter) -message "Added Autopilot profile $($displayname)" -Sev 'Info'
             }
         } else {
+            #patch the profile
+            $null = New-GraphPostRequest -uri "https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeploymentProfiles/$($Profiles.id)" -tenantid $tenantfilter -body $body -type PATCH
             $GraphRequest = $Profiles
         }
 
