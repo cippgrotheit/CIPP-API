@@ -19,7 +19,7 @@ function Invoke-CIPPStandardDisableSharePointLegacyAuth {
         IMPACT
             Medium Impact
         POWERSHELLEQUIVALENT
-            Set-SPOTenant -LegacyAuthProtocolsEnabled $false
+            Set-SPOTenant -LegacyAuthProtocolsEnabled \$false
         RECOMMENDEDBY
             "CIS"
         UPDATECOMMENTBLOCK
@@ -29,6 +29,7 @@ function Invoke-CIPPStandardDisableSharePointLegacyAuth {
     #>
 
     param($Tenant, $Settings)
+    ##$Rerun -Type Standard -Tenant $Tenant -Settings $Settings 'DisableSharePointLegacyAuth'
 
     $CurrentInfo = New-GraphGetRequest -Uri 'https://graph.microsoft.com/beta/admin/sharepoint/settings?$select=isLegacyAuthProtocolsEnabled' -tenantid $Tenant -AsApp $true
 
