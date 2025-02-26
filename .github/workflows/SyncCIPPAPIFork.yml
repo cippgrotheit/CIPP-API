@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checke den main-Branch eures Forks aus
-      - name: Checkout fork main branch
+      # 1. Checke den master-Branch eures Forks aus
+      - name: Checkout fork master branch
         uses: actions/checkout@v3
         with:
           repository: cippgrotheit/CIPP-API
           token: ${{ secrets.GITHUB_TOKEN }}
-          ref: main
+          ref: master
 
       # 3. Lese die lokale Version aus der version_latest.txt
       - name: Get local version from version_latest.txt
@@ -32,7 +32,7 @@ jobs:
       - name: Get upstream version from version_latest.txt
         id: upstream_version
         run: |
-          curl -s https://raw.githubusercontent.com/KelvinTegelaar/CIPP-API/main/version_latest.txt -o upstream_version_latest.txt
+          curl -s https://raw.githubusercontent.com/KelvinTegelaar/CIPP-API/master/version_latest.txt -o upstream_version_latest.txt
           UPSTREAM_VERSION=$(cat upstream_version_latest.txt)
           echo "UPSTREAM_VERSION=$UPSTREAM_VERSION" >> $GITHUB_ENV
           echo "Upstream version: $UPSTREAM_VERSION"
@@ -51,7 +51,7 @@ jobs:
 
       # 6. Falls ein Update vorliegt:
       #     - Erstelle einen Backup-Branch (z.B. backup-<alteVersion>)
-      #     - Füge den Upstream hinzu, merge dessen main in euren main-Branch und pushe die Änderungen
+      #     - Füge den Upstream hinzu, merge dessen master in euren master-Branch und pushe die Änderungen
       - name: Create backup branch and sync from upstream
         if: env.run_update == 'true'
         run: |
@@ -63,10 +63,10 @@ jobs:
           git remote add upstream https://github.com/KelvinTegelaar/CIPP-API.git
           git fetch upstream
 
-          # Wechsle zurück zu main und merge die Änderungen
-          git checkout main
-          git merge upstream/main --no-edit
-          git push origin main
+          # Wechsle zurück zu master und merge die Änderungen
+          git checkout master
+          git merge upstream/master --no-edit
+          git push origin master
 
       # 7. Abschließender Logeintrag
       - name: Log update info
