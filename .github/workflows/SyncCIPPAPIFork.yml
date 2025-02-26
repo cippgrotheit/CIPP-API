@@ -1,0 +1,74 @@
+name: Sync CIPP-API Fork on Version Change
+
+on:
+  # Täglich um 07:30 (UTC)
+  schedule:
+    - cron: '30 7 * * *'
+  # Manuelles Triggern möglich
+  workflow_dispatch:
+
+jobs:
+  sync-fork:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checke den main-Branch eures Forks aus
+      - name: Checkout fork main branch
+        uses: actions/checkout@v3
+        with:
+          repository: cippgrotheit/CIPP-API
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+
+      # 3. Lese die lokale Version aus der version_latest.txt
+      - name: Get local version from version_latest.txt
+        id: local_version
+        run: |
+          LOCAL_VERSION=$(cat version_latest.txt)
+          echo "LOCAL_VERSION=$LOCAL_VERSION" >> $GITHUB_ENV
+          echo "Local version: $LOCAL_VERSION"
+
+      # 4. Hole die upstream-Version aus der version_latest.txt des Original-Repos
+      - name: Get upstream version from version_latest.txt
+        id: upstream_version
+        run: |
+          curl -s https://raw.githubusercontent.com/KelvinTegelaar/CIPP-API/main/version_latest.txt -o upstream_version_latest.txt
+          UPSTREAM_VERSION=$(cat upstream_version_latest.txt)
+          echo "UPSTREAM_VERSION=$UPSTREAM_VERSION" >> $GITHUB_ENV
+          echo "Upstream version: $UPSTREAM_VERSION"
+
+      # 5. Vergleiche die beiden Versionen
+      - name: Compare versions
+        id: compare_versions
+        run: |
+          if [ "$UPSTREAM_VERSION" = "$LOCAL_VERSION" ]; then
+            echo "No version change. Local version: $LOCAL_VERSION, Upstream version: $UPSTREAM_VERSION."
+            echo "run_update=false" >> $GITHUB_ENV
+          else
+            echo "Version change detected! Local version: $LOCAL_VERSION, Upstream version: $UPSTREAM_VERSION."
+            echo "run_update=true" >> $GITHUB_ENV
+          fi
+
+      # 6. Falls ein Update vorliegt:
+      #     - Erstelle einen Backup-Branch (z.B. backup-<alteVersion>)
+      #     - Füge den Upstream hinzu, merge dessen main in euren main-Branch und pushe die Änderungen
+      - name: Create backup branch and sync from upstream
+        if: env.run_update == 'true'
+        run: |
+          # Erstelle Backup-Branch basierend auf der alten Version
+          git checkout -b backup-${LOCAL_VERSION}
+          git push origin backup-${LOCAL_VERSION}
+
+          # Füge den Upstream-Remote hinzu und hole dessen Daten
+          git remote add upstream https://github.com/KelvinTegelaar/CIPP-API.git
+          git fetch upstream
+
+          # Wechsle zurück zu main und merge die Änderungen
+          git checkout main
+          git merge upstream/main --no-edit
+          git push origin main
+
+      # 7. Abschließender Logeintrag
+      - name: Log update info
+        if: env.run_update == 'true'
+        run: echo "CIPP-API Fork updated from version $LOCAL_VERSION to $UPSTREAM_VERSION."
