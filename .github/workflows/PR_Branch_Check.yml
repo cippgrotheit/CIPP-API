@@ -1,8 +1,8 @@
 name: PR Branch Check
 
-on:
-    watch:
-      - main
+#on:
+ # push:
+  #  branches:
       - master
   # Using pull_request_target instead of pull_request for secure handling of fork PRs
   #pull_request_target:
