@@ -8,67 +8,58 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-fork:
+  sync:
     runs-on: ubuntu-latest
+    env:
+      # Der GitHub Token wird hier verwendet – dieser wird automatisch in Actions gesetzt.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      # 1. Checke den master-Branch eures Forks aus
       - name: Checkout fork master branch
         uses: actions/checkout@v3
         with:
-          repository: cippgrotheit/CIPP-API
-          token: ${{ secrets.GITHUB_TOKEN }}
           ref: master
 
-      # 2. Lese die lokale Version aus der version_latest.txt
-      - name: Get local version from version_latest.txt
-        id: local_version
+      - name: Configure Git identity
         run: |
-          LOCAL_VERSION=$(cat version_latest.txt)
-          echo "LOCAL_VERSION=$LOCAL_VERSION" >> $GITHUB_ENV
-          echo "Local version: $LOCAL_VERSION"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-      # 3. Hole die upstream-Version aus der version_latest.txt des Original-Repos
-      - name: Get upstream version from version_latest.txt
-        id: upstream_version
+      - name: Add upstream remote and fetch changes
         run: |
-          curl -s https://raw.githubusercontent.com/KelvinTegelaar/CIPP-API/master/version_latest.txt -o upstream_version_latest.txt
-          UPSTREAM_VERSION=$(cat upstream_version_latest.txt)
-          echo "UPSTREAM_VERSION=$UPSTREAM_VERSION" >> $GITHUB_ENV
-          echo "Upstream version: $UPSTREAM_VERSION"
-
-      # 4. Vergleiche die beiden Versionen
-      - name: Compare versions
-        id: compare_versions
-        run: |
-          if [ "$UPSTREAM_VERSION" = "$LOCAL_VERSION" ]; then
-            echo "No version change. Local version: $LOCAL_VERSION, Upstream version: $UPSTREAM_VERSION."
-            echo "run_update=false" >> $GITHUB_ENV
-          else
-            echo "Version change detected! Local version: $LOCAL_VERSION, Upstream version: $UPSTREAM_VERSION."
-            echo "run_update=true" >> $GITHUB_ENV
-          fi
-
-      # 5. Falls ein Update vorliegt:
-      #     - Erstelle einen Backup-Branch (z.B. backup-<alteVersion>)
-      #     - Füge den Upstream hinzu, merge dessen master in euren master-Branch und pushe die Änderungen
-      - name: Create backup branch and sync from upstream
-        if: env.run_update == 'true'
-        run: |
-          # Erstelle Backup-Branch basierend auf der alten Version
-          git checkout -b backup-${LOCAL_VERSION}
-          git push origin backup-${LOCAL_VERSION}
-
-          # Füge den Upstream-Remote hinzu und hole dessen Daten
-          git remote add upstream https://github.com/KelvinTegelaar/CIPP-API.git
+          git remote add upstream https://github.com/KelvinTegelaar/CIPP-API.git || echo "Upstream remote already exists"
           git fetch upstream
 
-          # Wechsle zurück zu master und merge die Änderungen mit --allow-unrelated-histories
-          git checkout master
-          git merge upstream/master --allow-unrelated-histories --no-edit
-          git push origin master
+      - name: Compare commit hashes of fork and upstream
+        id: compare
+        run: |
+          UPSTREAM_HASH=$(git rev-parse upstream/master)
+          LOCAL_HASH=$(git rev-parse master)
+          echo "Upstream hash: $UPSTREAM_HASH"
+          echo "Local hash: $LOCAL_HASH"
+          if [ "$UPSTREAM_HASH" = "$LOCAL_HASH" ]; then
+            echo "No update needed."
+            echo "update_needed=false" >> $GITHUB_ENV
+          else
+            echo "Fork is behind upstream – update needed."
+            echo "update_needed=true" >> $GITHUB_ENV
+          fi
 
-      # 6. Abschließender Logeintrag
+      - name: Install wei/pull tool
+        if: env.update_needed == 'true'
+        run: |
+          # Installiere das Tool per Go; stelle sicher, dass Go auf dem Runner verfügbar ist.
+          go install github.com/wei/pull@latest
+          # Füge den Go-Bin-Pfad zur PATH-Variable hinzu.
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Create pull request to sync fork
+        if: env.update_needed == 'true'
+        run: |
+          # Erstelle einen Pull Request von upstream/master in den lokalen master.
+          # Die Parameter können je nach Tool-Version angepasst werden.
+          pull -base master -head upstream/master -title "Sync Fork: Upstream changes" -body "Automated sync PR created by GitHub Actions."
+
       - name: Log update info
-        if: env.run_update == 'true'
-        run: echo "CIPP-API Fork updated from version $LOCAL_VERSION to $UPSTREAM_VERSION."
+        if: env.update_needed == 'true'
+        run: echo "A pull request has been created to sync the fork with upstream."
