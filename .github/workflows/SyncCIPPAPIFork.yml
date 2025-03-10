@@ -1,65 +1,14 @@
-name: Sync CIPP-API Fork on Version Change
+name: Trigger Pull App Sync
 
 on:
-  # Täglich um 07:30 (UTC)
   schedule:
-    - cron: '30 7 * * *'
-  # Manuelles Triggern möglich
-  workflow_dispatch:
+    - cron: '30 7 * * *'  # Täglich um 07:30 UTC – passe die Zeit ggf. an deine Zeitzone an
+  workflow_dispatch:     # Erlaubt auch manuelles Triggern über die GitHub-Oberfläche
 
 jobs:
-  sync:
+  trigger:
     runs-on: ubuntu-latest
-    env:
-      # Der GitHub Token wird hier verwendet – dieser wird automatisch in Actions gesetzt.
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     steps:
-      - name: Checkout fork master branch
-        uses: actions/checkout@v3
-        with:
-          ref: master
-
-      - name: Configure Git identity
+      - name: Trigger Pull App Sync
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-
-      - name: Add upstream remote and fetch changes
-        run: |
-          git remote add upstream https://github.com/KelvinTegelaar/CIPP-API.git || echo "Upstream remote already exists"
-          git fetch upstream
-
-      - name: Compare commit hashes of fork and upstream
-        id: compare
-        run: |
-          UPSTREAM_HASH=$(git rev-parse upstream/master)
-          LOCAL_HASH=$(git rev-parse master)
-          echo "Upstream hash: $UPSTREAM_HASH"
-          echo "Local hash: $LOCAL_HASH"
-          if [ "$UPSTREAM_HASH" = "$LOCAL_HASH" ]; then
-            echo "No update needed."
-            echo "update_needed=false" >> $GITHUB_ENV
-          else
-            echo "Fork is behind upstream – update needed."
-            echo "update_needed=true" >> $GITHUB_ENV
-          fi
-
-      - name: Install wei/pull tool
-        if: env.update_needed == 'true'
-        run: |
-          # Installiere das Tool per Go; stelle sicher, dass Go auf dem Runner verfügbar ist.
-          go install github.com/wei/pull@latest
-          # Füge den Go-Bin-Pfad zur PATH-Variable hinzu.
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-
-      - name: Create pull request to sync fork
-        if: env.update_needed == 'true'
-        run: |
-          # Erstelle einen Pull Request von upstream/master in den lokalen master.
-          # Die Parameter können je nach Tool-Version angepasst werden.
-          pull -base master -head upstream/master -title "Sync Fork: Upstream changes" -body "Automated sync PR created by GitHub Actions."
-
-      - name: Log update info
-        if: env.update_needed == 'true'
-        run: echo "A pull request has been created to sync the fork with upstream."
+          curl -L https://pull.git.ci/process/cippgrotheit/CIPP-API
