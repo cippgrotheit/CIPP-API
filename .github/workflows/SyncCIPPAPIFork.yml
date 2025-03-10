@@ -1,4 +1,4 @@
-name: Trigger Pull App Sync
+name: Sync CIPP-API Fork on Version Change
 
 on:
   schedule:
