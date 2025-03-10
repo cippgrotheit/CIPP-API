@@ -97,6 +97,24 @@ function New-CIPPIntuneTemplate {
 
             $TemplateJson = (ConvertTo-Json -InputObject $inputvar -Depth 100 -Compress)
         }
+        'windowsFeatureUpdateProfiles' {
+            $Type = 'windowsFeatureUpdateProfiles'
+            $Template = New-GraphGetRequest -uri "https://graph.microsoft.com/beta/deviceManagement/$($urlname)/$($ID)" -tenantid $tenantfilter | Select-Object * -ExcludeProperty id, lastModifiedDateTime, '@odata.context', 'ScopeTagIds', 'supportsScopeTags', 'createdDateTime'
+            $DisplayName = $Template.displayName
+            $TemplateJson = ConvertTo-Json -InputObject $Template -Depth 100 -Compress
+        }
+        'windowsQualityUpdatePolicies' {
+            $Type = 'windowsQualityUpdatePolicies'
+            $Template = New-GraphGetRequest -uri "https://graph.microsoft.com/beta/deviceManagement/$($urlname)/$($ID)" -tenantid $tenantfilter | Select-Object * -ExcludeProperty id, lastModifiedDateTime, '@odata.context', 'ScopeTagIds', 'supportsScopeTags', 'createdDateTime'
+            $DisplayName = $Template.displayName
+            $TemplateJson = ConvertTo-Json -InputObject $Template -Depth 100 -Compress
+        }
+        'windowsQualityUpdateProfiles' {
+            $Type = 'windowsQualityUpdateProfiles'
+            $Template = New-GraphGetRequest -uri "https://graph.microsoft.com/beta/deviceManagement/$($urlname)/$($ID)" -tenantid $tenantfilter | Select-Object * -ExcludeProperty id, lastModifiedDateTime, '@odata.context', 'ScopeTagIds', 'supportsScopeTags', 'createdDateTime'
+            $DisplayName = $Template.displayName
+            $TemplateJson = ConvertTo-Json -InputObject $Template -Depth 100 -Compress
+        }
     }
     return [PSCustomObject]@{
         TemplateJson = $TemplateJson
