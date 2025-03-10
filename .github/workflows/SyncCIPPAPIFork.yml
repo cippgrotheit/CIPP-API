@@ -20,7 +20,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: master
 
-      # 3. Lese die lokale Version aus der version_latest.txt
+      # 2. Lese die lokale Version aus der version_latest.txt
       - name: Get local version from version_latest.txt
         id: local_version
         run: |
@@ -28,7 +28,7 @@ jobs:
           echo "LOCAL_VERSION=$LOCAL_VERSION" >> $GITHUB_ENV
           echo "Local version: $LOCAL_VERSION"
 
-      # 4. Hole die upstream-Version aus der version_latest.txt des Original-Repos
+      # 3. Hole die upstream-Version aus der version_latest.txt des Original-Repos
       - name: Get upstream version from version_latest.txt
         id: upstream_version
         run: |
@@ -37,7 +37,7 @@ jobs:
           echo "UPSTREAM_VERSION=$UPSTREAM_VERSION" >> $GITHUB_ENV
           echo "Upstream version: $UPSTREAM_VERSION"
 
-      # 5. Vergleiche die beiden Versionen
+      # 4. Vergleiche die beiden Versionen
       - name: Compare versions
         id: compare_versions
         run: |
@@ -49,7 +49,7 @@ jobs:
             echo "run_update=true" >> $GITHUB_ENV
           fi
 
-      # 6. Falls ein Update vorliegt:
+      # 5. Falls ein Update vorliegt:
       #     - Erstelle einen Backup-Branch (z.B. backup-<alteVersion>)
       #     - Füge den Upstream hinzu, merge dessen master in euren master-Branch und pushe die Änderungen
       - name: Create backup branch and sync from upstream
@@ -63,12 +63,12 @@ jobs:
           git remote add upstream https://github.com/KelvinTegelaar/CIPP-API.git
           git fetch upstream
 
-          # Wechsle zurück zu master und merge die Änderungen
+          # Wechsle zurück zu master und merge die Änderungen mit --allow-unrelated-histories
           git checkout master
-          git merge upstream/master --no-edit
+          git merge upstream/master --allow-unrelated-histories --no-edit
           git push origin master
 
-      # 7. Abschließender Logeintrag
+      # 6. Abschließender Logeintrag
       - name: Log update info
         if: env.run_update == 'true'
         run: echo "CIPP-API Fork updated from version $LOCAL_VERSION to $UPSTREAM_VERSION."
